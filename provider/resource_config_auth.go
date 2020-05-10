@@ -1,7 +1,7 @@
 package provider
 
 import (
-	"bitbucket.org/bestsellerit/terraform-provider-harbor/client"
+	"github.com/benosman/terraform-provider-harbor/client"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
