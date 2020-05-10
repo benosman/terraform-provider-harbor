@@ -1,4 +1,4 @@
-package provider
+package harbor
 
 import (
 	"github.com/benosman/terraform-provider-harbor/client"

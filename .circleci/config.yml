@@ -19,7 +19,7 @@ jobs:
             sudo apt upgrade -y
       - run: go get -v ./...
       - run:
-          name: Build terraform provider for multiple platforms
+          name: Build terraform harbor for multiple platforms
           command: |
             package_name=terraform-harbor-provider
 

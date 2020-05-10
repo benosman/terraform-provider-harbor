@@ -1,4 +1,4 @@
-package provider
+package harbor
 
 import (
 	"encoding/json"
