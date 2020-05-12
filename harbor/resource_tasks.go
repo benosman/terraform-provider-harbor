@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
-var pathVuln = "/api/system/scanAll/schedule"
+var pathVuln = "/api/v2.0/system/scanAll/schedule"
 var TypeStr string
 var CronStr string
 

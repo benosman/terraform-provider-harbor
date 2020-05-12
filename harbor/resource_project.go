@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
-var pathProjects = "/api/projects"
+var pathProjects = "/api/v2.0/projects"
 
 type project struct {
 	ProjectName string   `json:"project_name"`
@@ -68,7 +68,7 @@ func resourceProjectCreate(d *schema.ResourceData, m interface{}) error {
 
 	_, err := apiClient.SendRequest("POST", pathProjects, body, 0)
 	if err != nil {
-		return err
+		return fmt.Errorf("[ERROR] Unable to create project: %s", err)
 	}
 
 	d.SetId(randomString(15))
@@ -91,11 +91,11 @@ func resourceProjectRead(d *schema.ResourceData, m interface{}) error {
 
 	err = json.Unmarshal([]byte(resp), &jsonData)
 	if err != nil {
-		return fmt.Errorf("[ERROR] Unable to unmarchal: %s", err)
+		return fmt.Errorf("[ERROR] Unable to unmarshal: %s", err)
 	}
 
 	if len(jsonData) < 1 {
-		return fmt.Errorf("[ERROR] JsonData is empty")
+		return fmt.Errorf("[ERROR] Unable to retrieve project")
 	}
 
 	d.Set("project_id", jsonData[0].ProjectID)

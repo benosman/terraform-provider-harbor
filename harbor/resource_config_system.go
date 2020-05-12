@@ -5,7 +5,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
-var path = "/api/configurations"
+var path = "/api/v2.0/configurations"
 
 type system struct {
 	ProjectCreationRestriction string `json:"project_creation_restriction"`
