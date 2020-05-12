@@ -3,6 +3,7 @@ package harbor
 import (
 	"encoding/json"
 	"fmt"
+	"path"
 	"strconv"
 
 	"github.com/benosman/terraform-provider-harbor/client"
@@ -11,8 +12,13 @@ import (
 
 var pathProjects = "/api/v2.0/projects"
 
-type project struct {
+type ProjectCreateOpts struct {
 	ProjectName string   `json:"project_name"`
+	Metadata    metadata `json:"metadata"`
+}
+
+type ProjectOpts struct {
+	Name        string   `json:"name"`
 	Metadata    metadata `json:"metadata"`
 }
 
@@ -21,99 +27,99 @@ type metadata struct {
 	Public   string `json:"public"`
 }
 
-type projects struct {
-	Name      string `json:"name"`
-	ProjectID int    `json:"project_id"`
-}
-
 func resourceProject() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true,
-			},
-			"project_id": {
-				Type:     schema.TypeInt,
-				Computed: true,
 			},
 			"public": {
-				Type:     schema.TypeString,
+				Type:     schema.TypeBool,
+				Computed: true,
 				Optional: true,
-				Default:  false,
 			},
-			"vulnerability_scanning": {
-				Type:     schema.TypeString,
+			"auto_scan": {
+				Type:     schema.TypeBool,
+				Computed: true,
 				Optional: true,
-				Default:  true,
 			},
 		},
 		Create: resourceProjectCreate,
 		Read:   resourceProjectRead,
 		Update: resourceProjectUpdate,
 		Delete: resourceProjectDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 	}
+}
+
+func resourceProjectSetToState(d *schema.ResourceData, project ProjectOpts) {
+	d.Set("name", project.Name)
+	d.Set("public", project.Metadata.Public)
+	d.Set("auto_scan", project.Metadata.AutoScan)
 }
 
 func resourceProjectCreate(d *schema.ResourceData, m interface{}) error {
 	apiClient := m.(*client.Client)
-	body := project{
+	body := ProjectCreateOpts{
 		ProjectName: d.Get("name").(string),
 		Metadata: metadata{
-			AutoScan: d.Get("vulnerability_scanning").(string),
-			Public:   d.Get("public").(string),
+			AutoScan: strconv.FormatBool(d.Get("vulnerability_scanning").(bool)),
+			Public:   strconv.FormatBool(d.Get("public").(bool)),
 		},
 	}
 
-	_, err := apiClient.SendRequest("POST", pathProjects, body, 0)
+	var resp *client.ClientResponse
+	resp, err := apiClient.SendRequestFull("POST", pathProjects, body, 0)
 	if err != nil {
 		return fmt.Errorf("[ERROR] Unable to create project: %s", err)
 	}
 
-	d.SetId(randomString(15))
+	location := resp.Headers.Get("location")
+	_, projectId := path.Split(location)
+	d.SetId(projectId)
+
 	return resourceProjectRead(d, m)
 }
 
 func resourceProjectRead(d *schema.ResourceData, m interface{}) error {
 	apiClient := m.(*client.Client)
 
-	body := project{
-		ProjectName: d.Get("name").(string),
-	}
-
-	resp, err := apiClient.SendRequest("GET", pathProjects+"?name="+body.ProjectName, nil, 0)
+	resp, err := apiClient.SendRequest("GET", pathProjects + "/" + d.Id(), nil, 0)
 	if err != nil {
 		return err
 	}
 
-	var jsonData []projects
+	var jsonProject ProjectOpts
 
-	err = json.Unmarshal([]byte(resp), &jsonData)
+	err = json.Unmarshal([]byte(resp), &jsonProject)
+
+	/*if err == nil {
+		return fmt.Errorf("[RESPONSE] %s", resp)
+	}*/
 	if err != nil {
 		return fmt.Errorf("[ERROR] Unable to unmarshal: %s", err)
 	}
 
-	if len(jsonData) < 1 {
-		return fmt.Errorf("[ERROR] Unable to retrieve project")
-	}
+	resourceProjectSetToState(d, jsonProject)
 
-	d.Set("project_id", jsonData[0].ProjectID)
 	return nil
 }
 
 func resourceProjectUpdate(d *schema.ResourceData, m interface{}) error {
 	apiClient := m.(*client.Client)
 
-	body := project{
-		ProjectName: d.Get("name").(string),
+	body := ProjectOpts{
+		Name: d.Get("name").(string),
 		Metadata: metadata{
-			AutoScan: d.Get("vulnerability_scanning").(string),
-			Public:   d.Get("public").(string),
+			AutoScan: strconv.FormatBool(d.Get("auto_scan").(bool)),
+			Public:   strconv.FormatBool(d.Get("public").(bool)),
 		},
 	}
 
-	_, err := apiClient.SendRequest("PUT", pathProjects, body, 0)
+	_, err := apiClient.SendRequest("PUT", pathProjects + "/" + d.Id(), body, 0)
 	if err != nil {
 		return err
 	}
@@ -123,8 +129,6 @@ func resourceProjectUpdate(d *schema.ResourceData, m interface{}) error {
 
 func resourceProjectDelete(d *schema.ResourceData, m interface{}) error {
 	apiClient := m.(*client.Client)
-	id := d.Get("project_id").(int)
-
-	apiClient.SendRequest("DELETE", pathProjects+"/"+strconv.Itoa(id), nil, 0)
-	return nil
+	_, err := apiClient.SendRequest("DELETE", pathProjects + "/" + d.Id(), nil, 0)
+	return err
 }

@@ -5,7 +5,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
-var path = "/api/v2.0/configurations"
+var apiPath = "/api/v2.0/configurations"
 
 type system struct {
 	ProjectCreationRestriction string `json:"project_creation_restriction"`
@@ -50,7 +50,7 @@ func resourceConfigSystemCreate(d *schema.ResourceData, m interface{}) error {
 		RobotTokenDuration:         d.Get("robot_token_expiration").(int),
 	}
 
-	_, err := apiClient.SendRequest("PUT", path, body, 0)
+	_, err := apiClient.SendRequest("PUT", apiPath, body, 0)
 	if err != nil {
 		return err
 	}
@@ -73,7 +73,7 @@ func resourceConfigSystemUpdate(d *schema.ResourceData, m interface{}) error {
 		RobotTokenDuration:         d.Get("robot_token_expiration").(int),
 	}
 
-	_, err := apiClient.SendRequest("PUT", path, body, 0)
+	_, err := apiClient.SendRequest("PUT", apiPath, body, 0)
 	if err != nil {
 		return err
 	}
