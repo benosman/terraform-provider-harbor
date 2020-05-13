@@ -37,6 +37,10 @@ func resourceRobotAccount() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
+			"username": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"project_id": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -94,6 +98,7 @@ func resourceRobotAccount() *schema.Resource {
 }
 
 func resourceRobotSetToState(d *schema.ResourceData, robot robotAccount) {
+	d.Set("username", robot.Name)
 	d.Set("expires_at", robot.ExpiresAt)
 }
 
